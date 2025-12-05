@@ -1,0 +1,165 @@
+# Implementation Plan
+
+- [x] 1. Set up project structure and core types
+  - [x] 1.1 Create TypeScript interfaces and types
+    - Create `src/types/index.ts` with Product, FilterState, FilterMetadata, CustomOrderRequest, MetalCategory, DeityCategory interfaces
+    - Define MetalType, FinishType, CategoryType union types
+    - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7_
+  - [x] 1.2 Create data files with mock data and mappings
+    - Create `src/data/metals.ts` with metal category definitions and metal-category mapping
+    - Create `src/data/categories.ts` with deity category definitions
+    - Create `src/data/products.ts` with mock product data
+    - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 3.1_
+
+- [x] 2. Implement filter utilities and hooks
+  - [x] 2.1 Create filter utility functions
+    - Create `src/lib/filterUtils.ts` with filter logic functions
+    - Implement `applyFilters(products, filterState)` function with AND logic
+    - Implement `getCategoriesForMetal(metal)` function
+    - Implement `swapRangeIfInvalid(min, max)` helper
+    - _Requirements: 4.2, 4.8, 4.9_
+  - [ ]* 2.2 Write property test for filter AND logic
+    - **Property 1: Filter AND Logic**
+    - **Validates: Requirements 4.9**
+  - [x] 2.3 Implement useDebounce hook
+    - Create `src/hooks/useDebounce.ts` with 300ms default delay
+    - _Requirements: 9.1_
+  - [x] 2.4 Implement useFilterState hook
+    - Create `src/hooks/useFilterState.ts` with filter state management
+    - Implement setMetal that resets other filters when metal changes
+    - Implement resetFilters that preserves metal selection
+    - _Requirements: 4.2, 4.10_
+  - [ ]* 2.5 Write property test for filter reset behavior
+    - **Property 2: Filter Reset Preserves Metal**
+    - **Validates: Requirements 4.10**
+  - [ ]* 2.6 Write property test for metal selection
+    - **Property 3: Metal Selection Updates Categories**
+    - **Validates: Requirements 4.2, 4.3**
+  - [x] 2.7 Implement useURLSync hook
+    - Create `src/hooks/useURLSync.ts` for URL query parameter synchronization
+    - Implement `syncToURL(filters)` function
+    - Implement `getFiltersFromURL()` function
+    - _Requirements: 8.1, 8.2_
+  - [ ]* 2.8 Write property test for URL round-trip
+    - **Property 7: URL Filter State Round-Trip**
+    - **Validates: Requirements 8.1, 8.2**
+  - [x] 2.9 Implement useFilterCache hook
+    - Create `src/hooks/useFilterCache.ts` for caching filter results
+    - Implement cache key generation from filter state
+    - Implement cache storage and retrieval
+    - _Requirements: 9.3_
+  - [ ]* 2.10 Write property test for filter caching
+    - **Property 8: Filter Result Caching**
+    - **Validates: Requirements 9.3**
+
+- [x] 3. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [x] 4. Implement UI components
+  - [x] 4.1 Create reusable UI components
+    - Create `src/components/ui/Button.tsx` with primary/secondary variants
+    - Create `src/components/ui/Badge.tsx` for trust badges
+    - Create `src/components/ui/Card.tsx` for reusable card component
+    - _Requirements: 1.3, 1.4, 1.5_
+  - [x] 4.2 Create ProductCard component
+    - Create `src/components/products/ProductCard.tsx`
+    - Display product image, name, price, weight, height, finish type
+    - _Requirements: 5.1, 5.2_
+  - [ ]* 4.3 Write property test for ProductCard rendering
+    - **Property 4: Product Card Rendering Completeness**
+    - **Validates: Requirements 5.1, 5.2**
+  - [x] 4.4 Create ProductGrid and LoadingGrid components
+    - Create `src/components/products/ProductGrid.tsx` with responsive grid layout
+    - Create `src/components/products/LoadingGrid.tsx` with skeleton loading
+    - _Requirements: 4.8, 9.2_
+
+- [x] 5. Implement filter panel components
+  - [x] 5.1 Create MetalSelect component
+    - Create `src/components/filters/MetalSelect.tsx` dropdown
+    - Display Brass, Copper, Panchdhatu, Custom options
+    - _Requirements: 4.1_
+  - [x] 5.2 Create CategorySelect component
+    - Create `src/components/filters/CategorySelect.tsx` dropdown
+    - Dynamically populate based on selected metal
+    - _Requirements: 4.3_
+  - [x] 5.3 Create RangeFilter component
+    - Create `src/components/filters/RangeFilter.tsx` with min/max inputs
+    - Support price (INR), weight (kg), height (inches) filters
+    - _Requirements: 4.4, 4.5, 4.6_
+  - [x] 5.4 Create MultiSelectFilter component
+    - Create `src/components/filters/MultiSelectFilter.tsx` with checkboxes
+    - Support finish type selection (Antique, Glossy, Matte, Gold-plated)
+    - _Requirements: 4.7_
+  - [x] 5.5 Create ResetButton and FilterPanel components
+    - Create `src/components/filters/ResetButton.tsx`
+    - Create `src/components/filters/FilterPanel.tsx` combining all filter components
+    - _Requirements: 4.10_
+
+- [x] 6. Implement landing page sections
+  - [x] 6.1 Create HeroSection component
+    - Create `src/components/landing/HeroSection.tsx`
+    - Display title, subtitle, metal indicators, trust badges, CTA buttons
+    - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5_
+  - [x] 6.2 Create ShopByMetal component
+    - Create `src/components/landing/ShopByMetal.tsx`
+    - Display four metal category cards with descriptions and item types
+    - Implement navigation to filtered product view on card click
+    - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6_
+  - [ ]* 6.3 Write property test for metal card navigation
+    - **Property 9: Metal Card Navigation**
+    - **Validates: Requirements 2.6**
+  - [x] 6.4 Create DeityCollections component
+    - Create `src/components/landing/DeityCollections.tsx`
+    - Display five deity category cards
+    - Implement navigation to deity landing pages
+    - _Requirements: 3.1, 3.2_
+  - [ ]* 6.5 Write property test for deity card navigation
+    - **Property 10: Deity Card Navigation**
+    - **Validates: Requirements 3.2**
+  - [x] 6.6 Create FeaturedProducts component
+    - Create `src/components/landing/FeaturedProducts.tsx`
+    - Display product grid with "View All Products" link
+    - _Requirements: 5.1, 5.2, 5.3_
+  - [x] 6.7 Create trust and about sections
+    - Create `src/components/landing/WhyChooseUs.tsx` with five key points
+    - Create `src/components/landing/AboutUsSection.tsx` with brand story
+    - Create `src/components/landing/FinalCTA.tsx` with heading and buttons
+    - _Requirements: 7.1, 7.2, 7.3_
+
+- [x] 7. Implement custom order form
+  - [x] 7.1 Create CustomOrderForm component
+    - Create `src/components/landing/CustomOrderForm.tsx`
+    - Implement form fields: design upload, size, material, contact details
+    - Implement form validation for required fields
+    - Display validation errors for missing/invalid fields
+    - Display confirmation message on successful submission
+    - _Requirements: 6.1, 6.2, 6.3_
+  - [ ]* 7.2 Write property test for valid form submission
+    - **Property 5: Valid Form Submission Success**
+    - **Validates: Requirements 6.2**
+  - [ ]* 7.3 Write property test for invalid form submission
+    - **Property 6: Invalid Form Submission Shows Errors**
+    - **Validates: Requirements 6.3**
+
+- [x] 8. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [x] 9. Implement API and integrate landing page
+  - [x] 9.1 Create products API endpoint
+    - Create `src/app/api/products/route.ts`
+    - Implement GET handler with filter query parameter support
+    - Return filtered products based on query params
+    - _Requirements: 4.8, 8.2_
+  - [x] 9.2 Create API client functions
+    - Create `src/lib/api.ts` with fetchProducts function
+    - Implement debounced API calls
+    - _Requirements: 9.1_
+  - [x] 9.3 Assemble landing page
+    - Update `src/app/page.tsx` to compose all landing page sections
+    - Integrate filter panel with product grid
+    - Wire up URL sync for filter state
+    - Implement loading states during filter operations
+    - _Requirements: 1.1, 4.8, 8.1, 9.2_
+
+- [x] 10. Final Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
