@@ -34,11 +34,11 @@ export function RangeFilter({
   };
 
   return (
-    <div className="space-y-2">
-      <label className="block text-sm font-medium text-gray-700">
+    <div className="space-y-1.5 sm:space-y-2">
+      <label className="block text-xs sm:text-sm font-medium text-gray-700">
         {label} {unit && <span className="text-gray-500">({unit})</span>}
       </label>
-      <div className="flex gap-2 items-center">
+      <div className="flex gap-1.5 sm:gap-2 items-center">
         <input
           type="number"
           value={minValue ?? ''}
@@ -46,10 +46,10 @@ export function RangeFilter({
           placeholder={minPlaceholder}
           step={step}
           disabled={disabled}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 disabled:bg-gray-100"
+          className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 disabled:bg-gray-100"
           aria-label={`Minimum ${label}`}
         />
-        <span className="text-gray-400">–</span>
+        <span className="text-gray-400 text-xs sm:text-sm">–</span>
         <input
           type="number"
           value={maxValue ?? ''}
@@ -57,7 +57,7 @@ export function RangeFilter({
           placeholder={maxPlaceholder}
           step={step}
           disabled={disabled}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 disabled:bg-gray-100"
+          className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 disabled:bg-gray-100"
           aria-label={`Maximum ${label}`}
         />
       </div>

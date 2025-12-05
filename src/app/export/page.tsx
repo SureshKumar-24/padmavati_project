@@ -1,22 +1,18 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Product, FilterState, DEFAULT_FILTER_STATE, METAL_TYPES, FINISH_TYPES } from '@/types';
+import { FilterState, DEFAULT_FILTER_STATE, METAL_TYPES, FINISH_TYPES } from '@/types';
 import { products } from '@/data/products';
 import { applyFilters, getCategoriesForMetal } from '@/lib/filterUtils';
-import { isNumberAuthorized } from '@/config/allowedNumbers';
 import Link from 'next/link';
 
 export default function ExportPage() {
-  const [isVerified, setIsVerified] = useState(false);
-  const [mobileNumber, setMobileNumber] = useState('');
-  const [error, setError] = useState('');
-  const [isVerifying, setIsVerifying] = useState(false);
-
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTER_STATE);
   const [isGenerating, setIsGenerating] = useState(false);
   const [pdfPassword, setPdfPassword] = useState('');
   const [showPasswordInput, setShowPasswordInput] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [generatedPassword, setGeneratedPassword] = useState('');
 
   // Get filtered products
   const filteredProducts = useMemo(() => {
@@ -27,31 +23,6 @@ export default function ExportPage() {
   const availableCategories = useMemo(() => {
     return getCategoriesForMetal(filters.metal);
   }, [filters.metal]);
-
-  const handleVerify = () => {
-    setError('');
-    setIsVerifying(true);
-
-    let cleanNumber = mobileNumber.replace(/[\s\-+]/g, '');
-    if (cleanNumber.length > 10 && cleanNumber.startsWith('91')) {
-      cleanNumber = cleanNumber.substring(2);
-    }
-
-    if (!/^\d{10}$/.test(cleanNumber)) {
-      setError('Please enter a valid 10-digit mobile number');
-      setIsVerifying(false);
-      return;
-    }
-
-    setTimeout(() => {
-      if (isNumberAuthorized(cleanNumber)) {
-        setIsVerified(true);
-      } else {
-        setError('This mobile number is not authorized. Please contact admin.');
-      }
-      setIsVerifying(false);
-    }, 500);
-  };
 
   const handleMetalChange = (metal: string) => {
     setFilters(prev => ({
@@ -102,7 +73,13 @@ export default function ExportPage() {
       const jsPDF = jsPDFModule.default;
       const autoTable = (await import('jspdf-autotable')).default;
 
-      const doc = new jsPDF();
+      const doc = new jsPDF({
+        encryption: {
+          userPassword: pdfPassword,
+          ownerPassword: pdfPassword,
+          userPermissions: ['print'],
+        },
+      });
 
       doc.setFontSize(20);
       doc.setTextColor(139, 69, 19);
@@ -190,10 +167,12 @@ export default function ExportPage() {
         );
       }
 
+      // Download the PDF
       const timestamp = new Date().toISOString().split('T')[0];
-      doc.save(`Padmavati_Products_${timestamp}_PWD_${pdfPassword}.pdf`);
+      doc.save(`Padmavati_Products_${timestamp}.pdf`);
 
-      alert(`PDF generated successfully!\n\nPassword: ${pdfPassword}\n\nShare this password only with authorized users.`);
+      setGeneratedPassword(pdfPassword);
+      setShowSuccessModal(true);
       setShowPasswordInput(false);
       setPdfPassword('');
     } catch (error) {
@@ -205,104 +184,52 @@ export default function ExportPage() {
   };
 
 
-  // Verification Screen
-  if (!isVerified) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
-          <div className="bg-gradient-to-r from-amber-700 to-amber-600 text-white p-6 text-center">
-            <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-            </div>
-            <h1 className="text-2xl font-bold">Product Export Center</h1>
-            <p className="text-white/80 text-sm mt-1">Enter your registered mobile number to access</p>
-          </div>
-
-          <div className="p-6">
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Mobile Number</label>
-              <div className="flex">
-                <span className="inline-flex items-center px-3 bg-gray-100 border border-r-0 border-gray-300 rounded-l-lg text-gray-600 text-sm">
-                  +91
-                </span>
-                <input
-                  type="tel"
-                  value={mobileNumber}
-                  onChange={e => { setMobileNumber(e.target.value); setError(''); }}
-                  placeholder="Enter 10-digit number"
-                  maxLength={10}
-                  className="flex-1 border border-gray-300 rounded-r-lg px-4 py-3 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none"
-                  onKeyDown={e => e.key === 'Enter' && handleVerify()}
-                />
-              </div>
-              {error && (
-                <p className="text-red-500 text-sm mt-2 flex items-center gap-1">
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                  </svg>
-                  {error}
-                </p>
-              )}
-            </div>
-
-            <button
-              onClick={handleVerify}
-              disabled={isVerifying || !mobileNumber.trim()}
-              className="w-full bg-amber-600 text-white py-3 rounded-lg font-semibold hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {isVerifying ? 'Verifying...' : 'Verify & Continue'}
-            </button>
-
-            <Link href="/" className="block w-full mt-3 text-center text-gray-500 hover:text-gray-700 py-2 text-sm">
-              ← Back to Home
-            </Link>
-
-            <p className="text-xs text-gray-400 text-center mt-4">
-              Only authorized users can access this feature. Contact admin to register.
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-
   // Main Export Page
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-amber-50">
       {/* Header */}
-      <header className="bg-gradient-to-r from-amber-700 to-amber-600 text-white p-4 sticky top-0 z-10 shadow-lg">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/" className="text-white/80 hover:text-white">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <header className="bg-gradient-to-r from-amber-900 via-amber-800 to-orange-900 text-white p-3 sm:p-4 sticky top-0 z-10 shadow-lg">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-4">
+            <Link href="/" className="w-8 h-8 sm:w-10 sm:h-10 bg-white/10 rounded-lg flex items-center justify-center hover:bg-white/20 transition-colors shrink-0">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
             </Link>
-            <h1 className="text-xl font-bold">Product Export Center</h1>
+            <div className="min-w-0">
+              <h1 className="text-base sm:text-xl font-bold truncate">Product Export Center</h1>
+              <p className="text-amber-200/70 text-xs hidden sm:block">Filter and export product catalog</p>
+            </div>
           </div>
-          <span className="text-sm text-white/70">Verified: +91 {mobileNumber}</span>
+          <span className="px-2 sm:px-3 py-1 sm:py-1.5 bg-amber-500/20 border border-amber-400/30 rounded-full text-amber-200 text-xs sm:text-sm whitespace-nowrap hidden md:block">
+            Padmavati Handicrafts
+          </span>
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto p-4 flex gap-6">
+      <div className="max-w-7xl mx-auto p-3 sm:p-4 lg:p-6 flex flex-col lg:flex-row gap-4 lg:gap-6">
         {/* Filter Sidebar */}
-        <aside className="w-72 flex-shrink-0">
-          <div className="bg-white rounded-xl shadow-sm p-5 sticky top-20">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold text-gray-800">Filters</h2>
-              <button onClick={resetFilters} className="text-sm text-amber-600 hover:text-amber-700">Reset</button>
+        <aside className="w-full lg:w-80 shrink-0">
+          <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 lg:sticky lg:top-24 border border-amber-100">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center">
+                  <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                  </svg>
+                </div>
+                <h2 className="font-bold text-gray-800">Filters</h2>
+              </div>
+              <button onClick={resetFilters} className="text-sm text-amber-600 hover:text-amber-700 font-medium">Reset All</button>
             </div>
 
             {/* Metal Select */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Metal Type</label>
+            <div className="mb-5">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Metal Type</label>
               <select
                 value={filters.metal || ''}
                 onChange={e => handleMetalChange(e.target.value)}
-                className="w-full border rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-amber-500"
+                className="w-full border-2 border-gray-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 hover:border-amber-300 transition-colors"
               >
                 <option value="">All Metals</option>
                 {METAL_TYPES.map(metal => (
@@ -312,12 +239,12 @@ export default function ExportPage() {
             </div>
 
             {/* Category Select */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+            <div className="mb-5">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Category</label>
               <select
                 value={filters.category || ''}
                 onChange={e => handleCategoryChange(e.target.value)}
-                className="w-full border rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-amber-500"
+                className="w-full border-2 border-gray-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 hover:border-amber-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={!filters.metal}
               >
                 <option value="">All Categories</option>
@@ -328,39 +255,39 @@ export default function ExportPage() {
             </div>
 
             {/* Price Range */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Price Range (₹)</label>
+            <div className="mb-5">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Price Range (₹)</label>
               <div className="flex gap-2">
-                <input type="number" placeholder="Min" value={filters.priceMin || ''} onChange={e => handleRangeChange('price', e.target.value, true)} className="w-1/2 border rounded-lg p-2 text-sm" />
-                <input type="number" placeholder="Max" value={filters.priceMax || ''} onChange={e => handleRangeChange('price', e.target.value, false)} className="w-1/2 border rounded-lg p-2 text-sm" />
+                <input type="number" placeholder="Min" value={filters.priceMin || ''} onChange={e => handleRangeChange('price', e.target.value, true)} className="w-1/2 border-2 border-gray-200 rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 hover:border-amber-300 transition-colors" />
+                <input type="number" placeholder="Max" value={filters.priceMax || ''} onChange={e => handleRangeChange('price', e.target.value, false)} className="w-1/2 border-2 border-gray-200 rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 hover:border-amber-300 transition-colors" />
               </div>
             </div>
 
             {/* Weight Range */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Weight (kg)</label>
+            <div className="mb-5">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Weight (kg)</label>
               <div className="flex gap-2">
-                <input type="number" step="0.1" placeholder="Min" value={filters.weightMin || ''} onChange={e => handleRangeChange('weight', e.target.value, true)} className="w-1/2 border rounded-lg p-2 text-sm" />
-                <input type="number" step="0.1" placeholder="Max" value={filters.weightMax || ''} onChange={e => handleRangeChange('weight', e.target.value, false)} className="w-1/2 border rounded-lg p-2 text-sm" />
+                <input type="number" step="0.1" placeholder="Min" value={filters.weightMin || ''} onChange={e => handleRangeChange('weight', e.target.value, true)} className="w-1/2 border-2 border-gray-200 rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 hover:border-amber-300 transition-colors" />
+                <input type="number" step="0.1" placeholder="Max" value={filters.weightMax || ''} onChange={e => handleRangeChange('weight', e.target.value, false)} className="w-1/2 border-2 border-gray-200 rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 hover:border-amber-300 transition-colors" />
               </div>
             </div>
 
             {/* Height Range */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Height (inches)</label>
+            <div className="mb-5">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Height (inches)</label>
               <div className="flex gap-2">
-                <input type="number" placeholder="Min" value={filters.heightMin || ''} onChange={e => handleRangeChange('height', e.target.value, true)} className="w-1/2 border rounded-lg p-2 text-sm" />
-                <input type="number" placeholder="Max" value={filters.heightMax || ''} onChange={e => handleRangeChange('height', e.target.value, false)} className="w-1/2 border rounded-lg p-2 text-sm" />
+                <input type="number" placeholder="Min" value={filters.heightMin || ''} onChange={e => handleRangeChange('height', e.target.value, true)} className="w-1/2 border-2 border-gray-200 rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 hover:border-amber-300 transition-colors" />
+                <input type="number" placeholder="Max" value={filters.heightMax || ''} onChange={e => handleRangeChange('height', e.target.value, false)} className="w-1/2 border-2 border-gray-200 rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 hover:border-amber-300 transition-colors" />
               </div>
             </div>
 
             {/* Finish Types */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Finish Type</label>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-3">Finish Type</label>
               <div className="space-y-2">
                 {FINISH_TYPES.map(finish => (
-                  <label key={finish} className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" checked={filters.finishTypes.includes(finish)} onChange={() => handleFinishToggle(finish)} className="rounded text-amber-600 focus:ring-amber-500" />
+                  <label key={finish} className="flex items-center gap-3 cursor-pointer p-2 rounded-lg hover:bg-amber-50 transition-colors">
+                    <input type="checkbox" checked={filters.finishTypes.includes(finish)} onChange={() => handleFinishToggle(finish)} className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 border-2 border-gray-300" />
                     <span className="text-sm text-gray-700">{finish}</span>
                   </label>
                 ))}
@@ -373,103 +300,202 @@ export default function ExportPage() {
         {/* Main Content */}
         <main className="flex-1">
           {/* Action Bar */}
-          <div className="bg-white rounded-xl shadow-sm p-4 mb-4 flex items-center justify-between">
-            <p className="text-gray-600">
-              <span className="font-semibold text-gray-800 text-lg">{filteredProducts.length}</span> products found
-            </p>
+          <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg p-3 sm:p-5 mb-4 sm:mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 border border-amber-100">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-amber-100 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-xl sm:text-2xl font-bold text-gray-800">{filteredProducts.length}</p>
+                <p className="text-gray-500 text-xs sm:text-sm">Products Found</p>
+              </div>
+            </div>
             {!showPasswordInput ? (
               <button
                 onClick={() => setShowPasswordInput(true)}
                 disabled={filteredProducts.length === 0}
-                className="bg-amber-600 text-white px-5 py-2.5 rounded-lg hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 font-medium"
+                className="w-full sm:w-auto bg-gradient-to-r from-amber-600 to-amber-700 text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg sm:rounded-xl hover:from-amber-700 hover:to-amber-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-semibold shadow-lg shadow-amber-600/30 transition-all text-sm sm:text-base"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
                 Export as PDF
               </button>
             ) : (
-              <div className="flex items-center gap-2">
+              <div className="w-full sm:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 bg-amber-50 p-2 sm:p-3 rounded-lg sm:rounded-xl">
                 <input
                   type="text"
                   placeholder="Enter PDF password"
                   value={pdfPassword}
                   onChange={e => setPdfPassword(e.target.value)}
-                  className="border rounded-lg px-3 py-2 text-sm w-48 focus:ring-2 focus:ring-amber-500"
+                  className="border-2 border-amber-200 rounded-lg px-3 sm:px-4 py-2 sm:py-2.5 text-sm w-full sm:w-44 md:w-52 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
                 />
-                <button
-                  onClick={generatePDF}
-                  disabled={isGenerating || !pdfPassword.trim()}
-                  className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 font-medium"
-                >
-                  {isGenerating ? 'Generating...' : 'Generate'}
-                </button>
-                <button onClick={() => { setShowPasswordInput(false); setPdfPassword(''); }} className="text-gray-500 hover:text-gray-700 px-2">
-                  Cancel
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={generatePDF}
+                    disabled={isGenerating || !pdfPassword.trim()}
+                    className="flex-1 sm:flex-none bg-green-600 text-white px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg hover:bg-green-700 disabled:opacity-50 font-semibold flex items-center justify-center gap-2 text-sm"
+                  >
+                    {isGenerating ? (
+                      <>
+                        <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                        <span className="hidden sm:inline">Generating...</span>
+                      </>
+                    ) : 'Generate'}
+                  </button>
+                  <button onClick={() => { setShowPasswordInput(false); setPdfPassword(''); }} className="text-gray-500 hover:text-gray-700 p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
               </div>
             )}
           </div>
 
-          {/* Product Table */}
-          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+          {/* Product Table - Desktop */}
+          <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg overflow-hidden border border-amber-100 hidden md:block">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-amber-50 border-b">
+                <thead className="bg-gradient-to-r from-amber-600 to-amber-700 text-white">
                   <tr>
-                    <th className="text-left p-4 font-semibold text-gray-700">#</th>
-                    <th className="text-left p-4 font-semibold text-gray-700">Image</th>
-                    <th className="text-left p-4 font-semibold text-gray-700">Product ID</th>
-                    <th className="text-left p-4 font-semibold text-gray-700">Name & Description</th>
-                    <th className="text-left p-4 font-semibold text-gray-700">Metal</th>
-                    <th className="text-left p-4 font-semibold text-gray-700">Category</th>
-                    <th className="text-left p-4 font-semibold text-gray-700">Price</th>
-                    <th className="text-left p-4 font-semibold text-gray-700">Weight</th>
-                    <th className="text-left p-4 font-semibold text-gray-700">Height</th>
-                    <th className="text-left p-4 font-semibold text-gray-700">Finish</th>
+                    <th className="text-left p-3 lg:p-4 font-semibold">#</th>
+                    <th className="text-left p-3 lg:p-4 font-semibold">Image</th>
+                    <th className="text-left p-3 lg:p-4 font-semibold hidden lg:table-cell">Product ID</th>
+                    <th className="text-left p-3 lg:p-4 font-semibold">Name</th>
+                    <th className="text-left p-3 lg:p-4 font-semibold">Metal</th>
+                    <th className="text-left p-3 lg:p-4 font-semibold hidden xl:table-cell">Category</th>
+                    <th className="text-left p-3 lg:p-4 font-semibold">Price</th>
+                    <th className="text-left p-3 lg:p-4 font-semibold hidden xl:table-cell">Weight</th>
+                    <th className="text-left p-3 lg:p-4 font-semibold hidden xl:table-cell">Height</th>
+                    <th className="text-left p-3 lg:p-4 font-semibold hidden lg:table-cell">Finish</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredProducts.map((product, index) => (
-                    <tr key={product.id} className="border-b hover:bg-gray-50 transition-colors">
-                      <td className="p-4 text-gray-500">{index + 1}</td>
-                      <td className="p-4">
-                        <img 
-                          src={product.images[0]} 
-                          alt={product.name}
-                          className="w-16 h-16 object-cover rounded-lg border"
-                        />
+                    <tr key={product.id} className={`border-b border-amber-50 hover:bg-amber-50/50 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-amber-50/30'}`}>
+                      <td className="p-3 lg:p-4 text-gray-500 font-medium">{index + 1}</td>
+                      <td className="p-3 lg:p-4">
+                        <img src={product.images[0]} alt={product.name} className="w-12 h-12 lg:w-16 lg:h-16 object-cover rounded-lg lg:rounded-xl border-2 border-amber-100 shadow-sm" />
                       </td>
-                      <td className="p-4 font-mono text-xs text-gray-500">{product.id}</td>
-                      <td className="p-4">
-                        <div className="font-medium text-gray-800">{product.name}</div>
-                        <div className="text-xs text-gray-500 mt-1 max-w-xs">{product.description}</div>
+                      <td className="p-3 lg:p-4 font-mono text-xs text-gray-500 hidden lg:table-cell">{product.id}</td>
+                      <td className="p-3 lg:p-4">
+                        <div className="font-semibold text-gray-800 text-sm">{product.name}</div>
+                        <div className="text-xs text-gray-500 mt-1 max-w-[200px] line-clamp-1 hidden lg:block">{product.description}</div>
                       </td>
-                      <td className="p-4 text-gray-600">{product.metal}</td>
-                      <td className="p-4 text-gray-600">{product.category}</td>
-                      <td className="p-4 font-semibold text-amber-700">₹{product.price.toLocaleString('en-IN')}</td>
-                      <td className="p-4 text-gray-600">{product.weightKg} kg</td>
-                      <td className="p-4 text-gray-600">{product.heightInch}&quot;</td>
-                      <td className="p-4">
-                        <span className="px-2 py-1 bg-gray-100 rounded text-xs font-medium">{product.finishType}</span>
+                      <td className="p-3 lg:p-4">
+                        <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">{product.metal}</span>
+                      </td>
+                      <td className="p-3 lg:p-4 text-gray-600 text-sm hidden xl:table-cell">{product.category}</td>
+                      <td className="p-3 lg:p-4 font-bold text-amber-600 text-sm lg:text-base">₹{product.price.toLocaleString('en-IN')}</td>
+                      <td className="p-3 lg:p-4 text-gray-600 text-sm hidden xl:table-cell">{product.weightKg} kg</td>
+                      <td className="p-3 lg:p-4 text-gray-600 text-sm hidden xl:table-cell">{product.heightInch}&quot;</td>
+                      <td className="p-3 lg:p-4 hidden lg:table-cell">
+                        <span className="px-2 py-0.5 bg-gray-100 rounded-full text-xs font-medium text-gray-600">{product.finishType}</span>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-            {filteredProducts.length === 0 && (
-              <div className="text-center py-16 text-gray-500">
-                <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          </div>
+
+          {/* Product Cards - Mobile */}
+          <div className="md:hidden space-y-3">
+            {filteredProducts.map((product, index) => (
+              <div key={product.id} className="bg-white rounded-xl shadow-sm border border-amber-100 p-3">
+                <div className="flex gap-3">
+                  <img src={product.images[0]} alt={product.name} className="w-20 h-20 object-cover rounded-lg border-2 border-amber-100 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="font-semibold text-gray-800 text-sm line-clamp-1">{product.name}</h3>
+                      <span className="text-xs text-gray-400">#{index + 1}</span>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{product.description}</p>
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">{product.metal}</span>
+                      <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs">{product.finishType}</span>
+                    </div>
+                    <div className="flex items-center justify-between mt-2">
+                      <span className="font-bold text-amber-600">₹{product.price.toLocaleString('en-IN')}</span>
+                      <span className="text-xs text-gray-500">{product.weightKg}kg • {product.heightInch}&quot;</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          {/* Empty State */}
+          {filteredProducts.length === 0 && (
+            <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg border border-amber-100 text-center py-12 sm:py-20 px-4">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 sm:w-10 sm:h-10 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                 </svg>
-                <p className="text-lg font-medium">No products match your filters</p>
-                <p className="mt-1">Try adjusting the filter criteria</p>
               </div>
-            )}
-          </div>
+              <p className="text-lg sm:text-xl font-semibold text-gray-700">No products match your filters</p>
+              <p className="mt-2 text-sm sm:text-base text-gray-500">Try adjusting the filter criteria</p>
+              <button onClick={resetFilters} className="mt-4 px-4 py-2 bg-amber-100 text-amber-700 rounded-lg font-medium hover:bg-amber-200 transition-colors text-sm sm:text-base">
+                Reset Filters
+              </button>
+            </div>
+          )}
         </main>
       </div>
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-300">
+            {/* Header */}
+            <div className="bg-gradient-to-br from-amber-600 via-amber-700 to-orange-700 p-8 text-center">
+              <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-white">PDF Generated!</h2>
+              <p className="text-amber-100 text-sm mt-1">Your catalog has been downloaded successfully</p>
+            </div>
+
+            {/* Content */}
+            <div className="p-6">
+              <div className="bg-amber-50 border-2 border-amber-200 rounded-xl p-4 mb-4">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
+                    <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-xs text-amber-600 font-medium">PDF Password</p>
+                    <p className="text-lg font-bold text-amber-800 font-mono">{generatedPassword}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2 text-sm text-gray-500 mb-6">
+                <svg className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p>Share this password only with authorized users who need access to the product catalog.</p>
+              </div>
+
+              <button
+                onClick={() => setShowSuccessModal(false)}
+                className="w-full py-3 bg-gradient-to-r from-amber-600 to-amber-700 text-white font-semibold rounded-xl hover:from-amber-700 hover:to-amber-800 transition-all shadow-lg shadow-amber-600/30"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

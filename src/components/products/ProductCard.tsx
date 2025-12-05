@@ -22,10 +22,10 @@ export function ProductCard({ product, onClick }: ProductCardProps) {
         alt={product.name}
         aspectRatio="square"
       />
-      <CardContent>
-        <h3 className="font-semibold text-gray-900 line-clamp-2 mb-2">{product.name}</h3>
-        <p className="text-xl font-bold text-amber-600 mb-3">{formatPrice(product.price)}</p>
-        <div className="space-y-1 text-sm text-gray-600">
+      <CardContent className="p-3 sm:p-4">
+        <h3 className="font-semibold text-gray-900 line-clamp-2 mb-1.5 sm:mb-2 text-sm sm:text-base">{product.name}</h3>
+        <p className="text-lg sm:text-xl font-bold text-amber-600 mb-2 sm:mb-3">{formatPrice(product.price)}</p>
+        <div className="space-y-0.5 sm:space-y-1 text-xs sm:text-sm text-gray-600">
           <p>
             <span className="font-medium">Weight:</span> {product.weightKg} kg
           </p>

@@ -24,22 +24,22 @@ export function MultiSelectFilter<T extends string>({
   };
 
   return (
-    <div className="space-y-2">
-      <label className="block text-sm font-medium text-gray-700">{label}</label>
-      <div className="space-y-2">
+    <div className="space-y-1.5 sm:space-y-2">
+      <label className="block text-xs sm:text-sm font-medium text-gray-700">{label}</label>
+      <div className="space-y-1.5 sm:space-y-2">
         {options.map((option) => (
           <label
             key={option}
-            className={`flex items-center gap-2 cursor-pointer ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`flex items-center gap-2 cursor-pointer p-1.5 sm:p-2 rounded-lg hover:bg-amber-50 transition-colors ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             <input
               type="checkbox"
               checked={selectedValues.includes(option)}
               onChange={() => handleToggle(option)}
               disabled={disabled}
-              className="w-4 h-4 text-amber-600 border-gray-300 rounded focus:ring-amber-500"
+              className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600 border-gray-300 rounded focus:ring-amber-500"
             />
-            <span className="text-sm text-gray-700">{option}</span>
+            <span className="text-xs sm:text-sm text-gray-700">{option}</span>
           </label>
         ))}
       </div>
