@@ -9,6 +9,7 @@ import { CustomOrderForm } from '@/components/landing/CustomOrderForm';
 import { WhyChooseUs } from '@/components/landing/WhyChooseUs';
 import { AboutUsSection } from '@/components/landing/AboutUsSection';
 import { FinalCTA } from '@/components/landing/FinalCTA';
+import { ExportButton } from '@/components/export';
 
 function LandingPageContent() {
   const scrollToSection = (id: string) => {
@@ -29,6 +30,7 @@ function LandingPageContent() {
       <WhyChooseUs />
       <AboutUsSection />
       <FinalCTA />
+      <ExportButton />
     </main>
   );
 }
