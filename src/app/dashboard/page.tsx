@@ -10,15 +10,34 @@ export default function DashboardPage() {
         totalParties: 0,
         cataloguesCreated: 0,
     });
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Simulate loading stats - Replace with actual API call
-        setStats({
-            totalProducts: 156,
-            totalCategories: 8,
-            totalParties: 24,
-            cataloguesCreated: 12,
-        });
+        const fetchStats = async () => {
+            try {
+                const [productsRes, categoriesRes, partiesRes] = await Promise.all([
+                    fetch('/api/products'),
+                    fetch('/api/categories'),
+                    fetch('/api/parties'),
+                ]);
+                const [productsData, categoriesData, partiesData] = await Promise.all([
+                    productsRes.json(),
+                    categoriesRes.json(),
+                    partiesRes.json(),
+                ]);
+                setStats({
+                    totalProducts: productsData.total || productsData.products?.length || 0,
+                    totalCategories: categoriesData.pagination?.total || categoriesData.categories?.length || 0,
+                    totalParties: partiesData.pagination?.total || partiesData.parties?.length || 0,
+                    cataloguesCreated: 0,
+                });
+            } catch (error) {
+                console.error('Error fetching stats:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchStats();
     }, []);
 
     const statCards = [
@@ -148,7 +167,7 @@ export default function DashboardPage() {
                             </svg>
                         </div>
                         <h3 className="text-gray-600 text-sm font-medium mb-1">{stat.title}</h3>
-                        <p className="text-3xl font-bold text-gray-800">{stat.value}</p>
+                        <p className="text-3xl font-bold text-gray-800">{loading ? '...' : stat.value}</p>
                     </Link>
                 ))}
             </div>

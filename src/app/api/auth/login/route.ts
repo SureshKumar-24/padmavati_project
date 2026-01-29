@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Get user from database
+        // Get user from mock database
         const user = await getUserByEmail(email);
 
         if (!user) {
